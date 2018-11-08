@@ -5,6 +5,8 @@
   "license": "MIT",
   "dependencies": {
     "zcl-packet": "^0.2.4",
-    "zigbee-shepherd": "git+https://github.com/Koenkk/zigbee-shepherd.git#c096ed6719a6c941217c560b4cdcc04e4dd34c3b"
+    "ziee": "^0.3.0",
+    "zigbee-shepherd": "git+https://github.com/Koenkk/zigbee-shepherd.git#c096ed6719a6c941217c560b4cdcc04e4dd34c3b",
+    "zive": "^0.2.2"
   }
 }

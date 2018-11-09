@@ -3,51 +3,36 @@ var ZShepherd = require('zigbee-shepherd');
 var Zive = require('zive'),
     Ziee = require('ziee');
 
+var group = 1;
+
 // var zclPacket = require('zcl-packet');
 var shepherd = new ZShepherd('/dev/ttyUSB0', {
     sp : { baudRate: 115200, rtscts: true },
 });
 
-shepherd.on('ready', function () {
+shepherd.on('ready', async () => {
     console.log('Server is ready.');
-
     // allow devices to join the network within 60 secs
-    shepherd.permitJoin(255, function (err) {
-        console.log('callback join');
-        if (err)
-            console.log(err);
-    });
+    await shepherd.permitJoin(255);
+    console.log('Waiting for device');
 });
 
 function attachDevice(device) {
-    // var ep = ep ? ep : device.epList[0];
-    // attachDevice2(device.ieeeAddr, ep);
     device.epList.forEach((epId) => registerOnAfIncomingMsg(device.ieeeAddr, epId));
 }
 
-function registerOnAfIncomingMsg(addr, epId) {
+async function registerOnAfIncomingMsg(addr, epId) {
     var ep = shepherd.find(addr, epId);
     console.log('Set onAfIncomingMsg for', addr, epId);
     if (addr === '0x000b57fffe150865') {
-        ep.bind('genLevelCtrl', getCoordinator(), (err) => { console.log('bind 0x000b57fffe150865 done', err); });
+        await ep.bind('genLevelCtrl', getCoordinator());
+        console.log('bind 0x000b57fffe150865 done');
     } else if (addr === '0xd0cf5efffed6f665') {
-        // console.log('yoooooooo', ep);
-        // var coordinator = getCoordinator();
-        // var dst = getCoordinator(); // 1; // group?
-        var dst = 1; // group?
-        // ep.bind('genOnOff', getCoordinator(), (err) => { console.log('bind 0xd0cf5efffed6f665 genOnOff done', err); });
-        // ep.bind('genLevelCtrl', getCoordinator(), (err) => { console.log('bind 0x000b57fffe150865 genLevelCtrl done', err); });
-        ep.bind('genOnOff', dst, (err) => {
-            console.log('bind 0xd0cf5efffed6f665 genOnOff done', err);
-            ep.bind('genLevelCtrl', dst, (err) => { console.log('bind 0xd0cf5efffed6f665 genLevelCtrl done', err); });
-        });
-
-        // console.log('getCoordinator()', getCoordinator());
-        ep = shepherd.find('0x00124b0007b95bbf', 11);
-        ep.bind('genOnOff', dst, (err) => {
-            console.log('bind coor genOnOff done', err);
-            ep.bind('genLevelCtrl', dst, (err) => { console.log('bind coor genLevelCtrl done', err); });
-        });
+        var dst = group; // getCoordinator();
+        await ep.bind('genOnOff', dst);
+        console.log('bind 0xd0cf5efffed6f665 genOnOff done');
+        await ep.bind('genLevelCtrl', dst);
+        console.log('bind 0xd0cf5efffed6f665 genLevelCtrl done');
     }
     ep.onAfIncomingMsg = (message) => {
         console.log('onAfIncomingMsg', addr, message.data);
@@ -64,20 +49,27 @@ function getCoordinator() {
     return shepherd.find(device.ieeeAddr, 1);
 }
 
-shepherd.start(function (err) {                 // start the server
+shepherd.start(async (err) => {                 // start the server
     if (err)
         console.log(err);
 
     console.log('start');
 
     var ziee = new Ziee();
-    ziee.init('genGroups', 'dir', { value: 1 });
+    ziee.init('genGroups', 'dir', { value: group });
+    ziee.init('genGroups', 'cmds', {
+        add: function (payload) { console.log('add group', payload); },
+    });
     ziee.init('genLevelCtrl', 'dir', { value: 1 });
-    // ziee.init('genGroups', 'attrs', { 65533: 1, nameSupport: 0 });
+    ziee.init('genLevelCtrl', 'cmds', {
+        moveToLevel: function (payload) { console.log('moveToLevel', payload); },
+    });
 
-    ziee.read('genLevelCtrl', 'dir', function (err, data) {
-        if (!err)
-            console.log('genLevelCtrl', data);  // 10
+    ziee.init('genOnOff', 'dir', { value: 1 });
+    ziee.init('genOnOff', 'cmds', {
+        on: function (payload) { console.log('on', payload); },
+        off: function (payload) { console.log('off', payload); },
+        toggle: function (payload) { console.log('toggle', payload); },
     });
 
     var localEp = new Zive({
@@ -86,18 +78,28 @@ shepherd.start(function (err) {                 // start the server
         discCmds: []
     }, ziee);
 
-    shepherd.mount(localEp, function (err, epId) {
-        if (!err) {
-            console.log('local endpoint mounted', epId);  // 11
+    const epId = await shepherd.mount(localEp);
+    console.log('local endpoint mounted', epId);  // 11
 
-            // now attachDevices
-            var devices = shepherd.list().filter((device) => device.type !== 'Coordinator');
-            console.log('devices', devices);
+    // console.log('getCoordinator()', getCoordinator());
+    ep = shepherd.find('0x00124b0007b95bbf', epId);
+    var dst = group; // getCoordinator();
+    await ep.bind('genOnOff', dst);
+    console.log('bind coor genOnOff done');
+    await ep.bind('genLevelCtrl', dst);
+    console.log('bind coor genLevelCtrl done');
 
-            devices.forEach((device) => {
-                attachDevice(device);
-            });
-        }
+    // ziee.read('genLevelCtrl', 'dir', function (err, data) {
+    //     if (!err)
+    //         console.log('>> reeeeeead genLevelCtrl', data);  // 10
+    // });
+
+    // now attachDevices
+    var devices = shepherd.list().filter((device) => device.type !== 'Coordinator');
+    console.log('devices', devices);
+
+    devices.forEach((device) => {
+        attachDevice(device);
     });
 });
 

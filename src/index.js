@@ -48,39 +48,7 @@ shepherd.start(async (err) => {                 // start the server
         console.log(err);
 
     console.log('start');
-
-    const ziee = new Ziee();
-    ziee.init('genGroups', 'dir', { value: group });
-    ziee.init('genGroups', 'cmds', {
-        add: (payload) => { console.log('add group', payload); },
-    });
-    ziee.init('genLevelCtrl', 'dir', { value: 1 });
-    ziee.init('genLevelCtrl', 'cmds', {
-        moveToLevel: (payload) => { console.log('moveToLevel', payload); },
-    });
-
-    ziee.init('genOnOff', 'dir', { value: 1 });
-    ziee.init('genOnOff', 'cmds', {
-        on: (payload) => { console.log('on', payload); },
-        off: (payload) => { console.log('off', payload); },
-        toggle: (payload) => { console.log('toggle', payload); },
-    });
-
-    const localEp = new Zive({
-        profId: 260,  // 'HA'
-        devId: 257,   // 'dimmableLight'
-        discCmds: []
-    }, ziee);
-
-    const epId = await shepherd.mount(localEp);
-    console.log('local endpoint mounted', epId);  // 11
-
-    ep = shepherd.find('0x00124b0007b95bbf', epId);
-    const dst = group; // getCoordinator();
-    await ep.bind('genOnOff', dst);
-    console.log('bind coor genOnOff done');
-    await ep.bind('genLevelCtrl', dst);
-    console.log('bind coor genLevelCtrl done');
+    await dummyDevice();
 
     // now attachDevices
     const devices = shepherd.list().filter((device) => device.type !== 'Coordinator');
@@ -109,6 +77,41 @@ shepherd.on('ind', (message) => {
         attachDevice(device);
     }
 });
+
+async function dummyDevice() {
+    const ziee = new Ziee();
+    ziee.init('genGroups', 'dir', { value: group });
+    ziee.init('genGroups', 'cmds', {
+        add: (payload) => { console.log('add group', payload); },
+    });
+    ziee.init('genLevelCtrl', 'dir', { value: 1 });
+    ziee.init('genLevelCtrl', 'cmds', {
+        moveToLevel: (payload) => { console.log('moveToLevel', payload); },
+    });
+
+    ziee.init('genOnOff', 'dir', { value: 1 });
+    ziee.init('genOnOff', 'cmds', {
+        on: (payload) => { console.log('on', payload); },
+        off: (payload) => { console.log('off', payload); },
+        toggle: (payload) => { console.log('toggle', payload); },
+    });
+
+    const localEp = new Zive({
+        profId: 260,  // 'HA'
+        devId: 257,   // 'dimmableLight'
+        discCmds: []
+    }, ziee);
+
+    const epId = await shepherd.mount(localEp);
+    console.log('local endpoint mounted', epId);  // 11
+
+    const ep = shepherd.find('0x00124b0007b95bbf', epId);
+    const dst = group; // getCoordinator();
+    await ep.bind('genOnOff', dst);
+    console.log('bind coor genOnOff done');
+    await ep.bind('genLevelCtrl', dst);
+    console.log('bind coor genLevelCtrl done');
+}
 
 
 // 0xd0cf5efffed6f665 outlet remote

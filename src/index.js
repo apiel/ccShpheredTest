@@ -3,10 +3,9 @@ var ZShepherd = require('zigbee-shepherd');
 var Zive = require('zive'),
     Ziee = require('ziee');
 
-var group = 1;
+const group = 1;
 
-// var zclPacket = require('zcl-packet');
-var shepherd = new ZShepherd('/dev/ttyUSB0', {
+const shepherd = new ZShepherd('/dev/ttyUSB0', {
     sp : { baudRate: 115200, rtscts: true },
 });
 
@@ -22,13 +21,13 @@ function attachDevice(device) {
 }
 
 async function registerOnAfIncomingMsg(addr, epId) {
-    var ep = shepherd.find(addr, epId);
+    const ep = shepherd.find(addr, epId);
     console.log('Set onAfIncomingMsg for', addr, epId);
     if (addr === '0x000b57fffe150865') {
         await ep.bind('genLevelCtrl', getCoordinator());
         console.log('bind 0x000b57fffe150865 done');
     } else if (addr === '0xd0cf5efffed6f665') {
-        var dst = group; // getCoordinator();
+        const dst = group; // getCoordinator();
         await ep.bind('genOnOff', dst);
         console.log('bind 0xd0cf5efffed6f665 genOnOff done');
         await ep.bind('genLevelCtrl', dst);
@@ -55,7 +54,7 @@ shepherd.start(async (err) => {                 // start the server
 
     console.log('start');
 
-    var ziee = new Ziee();
+    const ziee = new Ziee();
     ziee.init('genGroups', 'dir', { value: group });
     ziee.init('genGroups', 'cmds', {
         add: function (payload) { console.log('add group', payload); },
@@ -72,7 +71,7 @@ shepherd.start(async (err) => {                 // start the server
         toggle: function (payload) { console.log('toggle', payload); },
     });
 
-    var localEp = new Zive({
+    const localEp = new Zive({
         profId: 260,  // 'HA'
         devId: 257,   // 'dimmableLight'
         discCmds: []
@@ -81,21 +80,15 @@ shepherd.start(async (err) => {                 // start the server
     const epId = await shepherd.mount(localEp);
     console.log('local endpoint mounted', epId);  // 11
 
-    // console.log('getCoordinator()', getCoordinator());
     ep = shepherd.find('0x00124b0007b95bbf', epId);
-    var dst = group; // getCoordinator();
+    const dst = group; // getCoordinator();
     await ep.bind('genOnOff', dst);
     console.log('bind coor genOnOff done');
     await ep.bind('genLevelCtrl', dst);
     console.log('bind coor genLevelCtrl done');
 
-    // ziee.read('genLevelCtrl', 'dir', function (err, data) {
-    //     if (!err)
-    //         console.log('>> reeeeeead genLevelCtrl', data);  // 10
-    // });
-
     // now attachDevices
-    var devices = shepherd.list().filter((device) => device.type !== 'Coordinator');
+    const devices = shepherd.list().filter((device) => device.type !== 'Coordinator');
     console.log('devices', devices);
 
     devices.forEach((device) => {

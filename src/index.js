@@ -35,12 +35,7 @@ async function registerOnAfIncomingMsg(addr, epId) {
     }
     ep.onAfIncomingMsg = (message) => {
         console.log('onAfIncomingMsg', addr, message.data);
-        // var yo = message;
-        // zclPacket.parse(message.data, message.clusterid, (error, zclData) => {
-        //     console.log('onAfIncomingMsg', ieeeAddr, yo.groupid, yo.data, ':::::', zclData);
-        // });
     };
-    // console.log('Set onAfIncomingMsg done', ep);
 }
 
 function getCoordinator() {
@@ -57,18 +52,18 @@ shepherd.start(async (err) => {                 // start the server
     const ziee = new Ziee();
     ziee.init('genGroups', 'dir', { value: group });
     ziee.init('genGroups', 'cmds', {
-        add: function (payload) { console.log('add group', payload); },
+        add: (payload) => { console.log('add group', payload); },
     });
     ziee.init('genLevelCtrl', 'dir', { value: 1 });
     ziee.init('genLevelCtrl', 'cmds', {
-        moveToLevel: function (payload) { console.log('moveToLevel', payload); },
+        moveToLevel: (payload) => { console.log('moveToLevel', payload); },
     });
 
     ziee.init('genOnOff', 'dir', { value: 1 });
     ziee.init('genOnOff', 'cmds', {
-        on: function (payload) { console.log('on', payload); },
-        off: function (payload) { console.log('off', payload); },
-        toggle: function (payload) { console.log('toggle', payload); },
+        on: (payload) => { console.log('on', payload); },
+        off: (payload) => { console.log('off', payload); },
+        toggle: (payload) => { console.log('toggle', payload); },
     });
 
     const localEp = new Zive({
@@ -96,14 +91,14 @@ shepherd.start(async (err) => {                 // start the server
     });
 });
 
-shepherd.on('error', function (err) {
+shepherd.on('error', (err) => {
     console.log('errrrrrrrrrrrr', err);
 });
 
-shepherd.on('ind', function (message) {
+shepherd.on('ind', (message) => {
     console.log('ind', message);
 
-    if (message.type == 'devIncoming') {
+    if (message.type === 'devIncoming') {
         console.log('devIncoming, new device yeah');
         const device = message.endpoints[0].device;
         const ieeeAddr = device.ieeeAddr;
